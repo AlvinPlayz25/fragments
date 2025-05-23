@@ -1,4 +1,10 @@
-export default function Logo(props: React.SVGProps<SVGSVGElement>) {
+import { SVGProps } from 'react'
+
+interface LogoProps extends SVGProps<SVGSVGElement> {
+  variant?: 'e2b' | 'default'
+}
+
+export default function Logo({ variant = 'default', ...props }: LogoProps) {
   return (
     <svg
       {...props}

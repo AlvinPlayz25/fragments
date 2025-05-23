@@ -60,7 +60,7 @@ export function DeployDialog({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="default">
-          <Logo style="e2b" width={16} height={16} className="mr-2" />
+          <Logo variant="e2b" width={16} height={16} className="mr-2" />
           Deploy to E2B
         </Button>
       </DropdownMenuTrigger>
