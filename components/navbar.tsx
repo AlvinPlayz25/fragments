@@ -16,11 +16,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import {
-  DiscordLogoIcon,
-  GitHubLogoIcon,
-  TwitterLogoIcon,
-} from '@radix-ui/react-icons'
 import { Session } from '@supabase/supabase-js'
 import { ArrowRight, LogOut, Trash, Undo } from 'lucide-react'
 import Link from 'next/link'
@@ -49,14 +44,7 @@ export function NavBar({
       <div className="flex flex-1 items-center">
         <Link href="/" className="flex items-center gap-2" target="_blank">
           <Logo width={24} height={24} />
-          <h1 className="whitespace-pre">Fragments by </h1>
-        </Link>
-        <Link
-          href="https://e2b.dev"
-          className="underline decoration-[rgba(229,123,0,.3)] decoration-2 text-[#ff8800]"
-          target="_blank"
-        >
-          E2B
+          <h1 className="font-bold">CODEX</h1>
         </Link>
       </div>
       <div className="flex items-center gap-1 md:gap-4">
@@ -125,27 +113,6 @@ export function NavBar({
                   {session.user.email}
                 </span>
               </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => {
-                  window.open('https://e2b.dev', '_blank')
-                }}
-              >
-                <Logo className="mr-2 h-4 w-4 text-muted-foreground" />
-                About E2B
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onSocialClick('github')}>
-                <GitHubLogoIcon className="mr-2 h-4 w-4 text-muted-foreground" />
-                Star on GitHub
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onSocialClick('discord')}>
-                <DiscordLogoIcon className="mr-2 h-4 w-4 text-muted-foreground" />
-                Join us on Discord
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onSocialClick('x')}>
-                <TwitterLogoIcon className="mr-2 h-4 w-4 text-muted-foreground" />
-                Follow us on X
-              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={signOut}>
                 <LogOut className="mr-2 h-4 w-4 text-muted-foreground" />
