@@ -8,7 +8,7 @@ import { JetBrains_Mono } from 'next/font/google'
 const mono = JetBrains_Mono({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Codex',
+  title: 'FRMWRK',
   description: 'AI-powered code generation',
 }
 
@@ -27,7 +27,9 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            {children}
+            <div className="min-h-screen bg-gradient-to-br from-zinc-900 via-black to-zinc-900">
+              {children}
+            </div>
           </ThemeProvider>
           <Toaster />
           <Analytics />

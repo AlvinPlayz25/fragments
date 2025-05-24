@@ -12,8 +12,8 @@ import {
 import { FragmentSchema } from '@/lib/schema'
 import { ExecutionResult } from '@/lib/types'
 import { DeepPartial } from 'ai'
-import { ChevronsRight, LoaderCircle } from 'lucide-react'
-import { Dispatch, SetStateAction } from 'react'
+import { ChevronsRight, FileTree, LoaderCircle, Terminal } from 'lucide-react'
+import { Dispatch, SetStateAction, useState } from 'react'
 
 export function Preview({
   teamID,
@@ -28,14 +28,16 @@ export function Preview({
 }: {
   teamID: string | undefined
   accessToken: string | undefined
-  selectedTab: 'code' | 'fragment'
-  onSelectedTabChange: Dispatch<SetStateAction<'code' | 'fragment'>>
+  selectedTab: 'code' | 'fragment' | 'files' | 'terminal'
+  onSelectedTabChange: Dispatch<SetStateAction<'code' | 'fragment' | 'files' | 'terminal'>>
   isChatLoading: boolean
   isPreviewLoading: boolean
   fragment?: DeepPartial<FragmentSchema>
   result?: ExecutionResult
   onClose: () => void
 }) {
+  const [terminalOutput, setTerminalOutput] = useState<string[]>([])
+
   if (!fragment) {
     return null
   }
@@ -43,15 +45,15 @@ export function Preview({
   const isLinkAvailable = result?.template !== 'code-interpreter-v1'
 
   return (
-    <div className="absolute md:relative z-10 top-0 left-0 shadow-2xl md:rounded-tl-3xl md:rounded-bl-3xl md:border-l md:border-y bg-popover h-full w-full overflow-auto">
+    <div className="absolute md:relative z-10 top-0 left-0 shadow-2xl md:rounded-tl-3xl md:rounded-bl-3xl md:border-l md:border-y bg-black/40 backdrop-blur-md h-full w-full overflow-auto">
       <Tabs
         value={selectedTab}
         onValueChange={(value) =>
-          onSelectedTabChange(value as 'code' | 'fragment')
+          onSelectedTabChange(value as 'code' | 'fragment' | 'files' | 'terminal')
         }
         className="h-full flex flex-col items-start justify-start"
       >
-        <div className="w-full p-2 grid grid-cols-3 items-center border-b">
+        <div className="w-full p-2 grid grid-cols-3 items-center border-b border-white/10">
           <TooltipProvider>
             <Tooltip delayDuration={0}>
               <TooltipTrigger asChild>
@@ -68,7 +70,7 @@ export function Preview({
             </Tooltip>
           </TooltipProvider>
           <div className="flex justify-center">
-            <TabsList className="px-1 py-0 border h-8">
+            <TabsList className="px-1 py-0 border h-8 bg-black/20">
               <TabsTrigger
                 className="font-normal text-xs py-1 px-2 gap-1 flex items-center"
                 value="code"
@@ -93,6 +95,20 @@ export function Preview({
                     className="h-3 w-3 animate-spin"
                   />
                 )}
+              </TabsTrigger>
+              <TabsTrigger
+                className="font-normal text-xs py-1 px-2 gap-1 flex items-center"
+                value="files"
+              >
+                <FileTree className="h-3 w-3" />
+                Files
+              </TabsTrigger>
+              <TabsTrigger
+                className="font-normal text-xs py-1 px-2 gap-1 flex items-center"
+                value="terminal"
+              >
+                <Terminal className="h-3 w-3" />
+                Terminal
               </TabsTrigger>
             </TabsList>
           </div>
@@ -125,6 +141,18 @@ export function Preview({
             </TabsContent>
             <TabsContent value="fragment" className="h-full">
               {result && <FragmentPreview result={result as ExecutionResult} />}
+            </TabsContent>
+            <TabsContent value="files" className="h-full p-4">
+              <div className="font-mono text-sm">
+                {/* File system view implementation */}
+                <p className="text-muted-foreground">File system view coming soon...</p>
+              </div>
+            </TabsContent>
+            <TabsContent value="terminal" className="h-full p-4">
+              <div className="font-mono text-sm bg-black/40 p-4 rounded-lg h-full">
+                {/* Terminal implementation */}
+                <p className="text-muted-foreground">Terminal coming soon...</p>
+              </div>
             </TabsContent>
           </div>
         )}

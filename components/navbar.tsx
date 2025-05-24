@@ -40,11 +40,11 @@ export function NavBar({
   canUndo: boolean
 }) {
   return (
-    <nav className="w-full flex bg-background py-4">
+    <nav className="w-full flex bg-black/20 backdrop-blur-sm py-4 border-b border-white/10">
       <div className="flex flex-1 items-center">
         <Link href="/" className="flex items-center gap-2" target="_blank">
           <Logo width={24} height={24} />
-          <h1 className="font-bold">CODEX</h1>
+          <h1 className="font-bold text-white">FRMWRK</h1>
         </Link>
       </div>
       <div className="flex items-center gap-1 md:gap-4">
