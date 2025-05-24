@@ -12,7 +12,7 @@ import {
 import { FragmentSchema } from '@/lib/schema'
 import { ExecutionResult } from '@/lib/types'
 import { DeepPartial } from 'ai'
-import { ChevronsRight, File as FileTree, LoaderCircle, Terminal } from 'lucide-react'
+import { ChevronsRight, File, LoaderCircle, Terminal } from 'lucide-react'
 import { Dispatch, SetStateAction, useState } from 'react'
 
 export function Preview({
@@ -100,7 +100,7 @@ export function Preview({
                 className="font-normal text-xs py-1 px-2 gap-1 flex items-center"
                 value="files"
               >
-                <FileTree className="h-3 w-3" />
+                <File className="h-3 w-3" />
                 Files
               </TabsTrigger>
               <TabsTrigger
