@@ -12,7 +12,7 @@ import {
 import { FragmentSchema } from '@/lib/schema'
 import { ExecutionResult } from '@/lib/types'
 import { DeepPartial } from 'ai'
-import { ChevronsRight, FileTree, LoaderCircle, Terminal } from 'lucide-react'
+import { ChevronsRight, File as FileTree, LoaderCircle, Terminal } from 'lucide-react'
 import { Dispatch, SetStateAction, useState } from 'react'
 
 export function Preview({
