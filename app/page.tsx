@@ -1,3 +1,5 @@
+'use client'
+
 import { ViewType } from '@/components/auth'
 import { AuthDialog } from '@/components/auth-dialog'
 import { Chat } from '@/components/chat'
