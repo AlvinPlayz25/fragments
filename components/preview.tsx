@@ -37,6 +37,7 @@ export function Preview({
   onClose: () => void
 }) {
   const [terminalOutput, setTerminalOutput] = useState<string[]>([])
+  const [terminalInput, setTerminalInput] = useState('')
 
   if (!fragment) {
     return null
@@ -44,8 +45,33 @@ export function Preview({
 
   const isLinkAvailable = result?.template !== 'code-interpreter-v1'
 
+  async function handleTerminalSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    if (!result?.sbxId) return
+
+    try {
+      const response = await fetch('/api/sandbox/terminal', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          command: terminalInput,
+          sandboxId: result.sbxId,
+        }),
+      })
+
+      const data = await response.json()
+      setTerminalOutput(prev => [...prev, `$ ${terminalInput}`, ...data.output])
+      setTerminalInput('')
+    } catch (error) {
+      console.error('Failed to execute command:', error)
+      setTerminalOutput(prev => [...prev, `Error: Failed to execute command`])
+    }
+  }
+
   return (
-    <div className="absolute md:relative z-10 top-0 left-0 shadow-2xl md:rounded-tl-3xl md:rounded-bl-3xl md:border-l md:border-y bg-black/40 backdrop-blur-md h-full w-full overflow-auto">
+    <div className="absolute md:relative z-10 top-0 left-0 shadow-2xl md:rounded-tl-3xl md:rounded-bl-3xl md:border-l md:border-y bg-black/40 backdrop-blur-md h-full w-full overflow-auto transition-all duration-300 ease-in-out">
       <Tabs
         value={selectedTab}
         onValueChange={(value) =>
@@ -60,7 +86,7 @@ export function Preview({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-muted-foreground"
+                  className="text-muted-foreground hover:bg-white/5 transition-colors duration-200"
                   onClick={onClose}
                 >
                   <ChevronsRight className="h-5 w-5" />
@@ -72,7 +98,7 @@ export function Preview({
           <div className="flex justify-center">
             <TabsList className="px-1 py-0 border h-8 bg-black/20">
               <TabsTrigger
-                className="font-normal text-xs py-1 px-2 gap-1 flex items-center"
+                className="font-normal text-xs py-1 px-2 gap-1 flex items-center transition-colors duration-200"
                 value="code"
               >
                 {isChatLoading && (
@@ -85,7 +111,7 @@ export function Preview({
               </TabsTrigger>
               <TabsTrigger
                 disabled={!result}
-                className="font-normal text-xs py-1 px-2 gap-1 flex items-center"
+                className="font-normal text-xs py-1 px-2 gap-1 flex items-center transition-colors duration-200"
                 value="fragment"
               >
                 Preview
@@ -97,14 +123,14 @@ export function Preview({
                 )}
               </TabsTrigger>
               <TabsTrigger
-                className="font-normal text-xs py-1 px-2 gap-1 flex items-center"
+                className="font-normal text-xs py-1 px-2 gap-1 flex items-center transition-colors duration-200"
                 value="files"
               >
                 <File className="h-3 w-3" />
                 Files
               </TabsTrigger>
               <TabsTrigger
-                className="font-normal text-xs py-1 px-2 gap-1 flex items-center"
+                className="font-normal text-xs py-1 px-2 gap-1 flex items-center transition-colors duration-200"
                 value="terminal"
               >
                 <Terminal className="h-3 w-3" />
@@ -143,15 +169,43 @@ export function Preview({
               {result && <FragmentPreview result={result as ExecutionResult} />}
             </TabsContent>
             <TabsContent value="files" className="h-full p-4">
-              <div className="font-mono text-sm">
-                {/* File system view implementation */}
-                <p className="text-muted-foreground">File system view coming soon...</p>
+              <div className="font-mono text-sm bg-black/40 p-4 rounded-lg h-full overflow-auto">
+                {/* File system implementation */}
+                <pre className="text-muted-foreground whitespace-pre-wrap">
+                  {`/home/project/
+├── app/
+│   ├── page.tsx
+│   └── layout.tsx
+├── components/
+│   └── ...
+├── lib/
+│   └── ...
+└── public/
+    └── ...`}
+                </pre>
               </div>
             </TabsContent>
             <TabsContent value="terminal" className="h-full p-4">
-              <div className="font-mono text-sm bg-black/40 p-4 rounded-lg h-full">
-                {/* Terminal implementation */}
-                <p className="text-muted-foreground">Terminal coming soon...</p>
+              <div className="font-mono text-sm bg-black/40 p-4 rounded-lg h-full flex flex-col">
+                <div className="flex-1 overflow-auto mb-4">
+                  {terminalOutput.map((line, i) => (
+                    <div key={i} className="text-muted-foreground">
+                      {line}
+                    </div>
+                  ))}
+                </div>
+                <form onSubmit={handleTerminalSubmit} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={terminalInput}
+                    onChange={(e) => setTerminalInput(e.target.value)}
+                    placeholder="Enter command..."
+                    className="flex-1 bg-transparent border border-white/10 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-white/20"
+                  />
+                  <Button type="submit" variant="outline" size="sm">
+                    Run
+                  </Button>
+                </form>
               </div>
             </TabsContent>
           </div>
