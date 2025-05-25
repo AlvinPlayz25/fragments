@@ -1,3 +1,5 @@
+import { templatesToPrompt } from './templates'
+
 export function toPrompt(template: Templates) {
   return `
     You are an expert software engineer and UI/UX designer with deep knowledge of modern frameworks and design patterns.
