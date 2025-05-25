@@ -9,7 +9,7 @@
   "nextjs-developer": {
     "name": "Next.js developer",
     "lib": ["nextjs@14.2.5", "typescript", "@types/node", "@types/react", "@types/react-dom", "postcss", "tailwindcss", "shadcn"],
-    "file": "",
+    "file": "pages/index.tsx",
     "instructions": "A Next.js 13+ app that reloads automatically. Using the pages router. Use tailwindcss and shadcn to the fullest",
     "port": 3000
   },
