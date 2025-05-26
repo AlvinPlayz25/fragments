@@ -12,8 +12,15 @@ import {
 import { FragmentSchema } from '@/lib/schema'
 import { ExecutionResult } from '@/lib/types'
 import { DeepPartial } from 'ai'
-import { ChevronsRight, File, LoaderCircle, Terminal } from 'lucide-react'
-import { Dispatch, SetStateAction, useState } from 'react'
+import { ChevronsRight, File, LoaderCircle, Terminal, FolderTree } from 'lucide-react'
+import { Dispatch, SetStateAction, useState, useEffect } from 'react'
+
+interface FileSystemEntry {
+  name: string;
+  type: 'file' | 'directory';
+  content?: string;
+  children?: FileSystemEntry[];
+}
 
 export function Preview({
   teamID,
@@ -38,12 +45,55 @@ export function Preview({
 }) {
   const [terminalOutput, setTerminalOutput] = useState<string[]>([])
   const [terminalInput, setTerminalInput] = useState('')
+  const [fileSystem, setFileSystem] = useState<FileSystemEntry[]>([])
+  const [selectedFile, setSelectedFile] = useState<string | null>(null)
+  const [fileContent, setFileContent] = useState<string>('')
 
-  if (!fragment) {
-    return null
+  useEffect(() => {
+    // Initialize file system structure when sandbox is ready
+    if (result?.sbxId) {
+      fetchFileSystem()
+    }
+  }, [result?.sbxId])
+
+  async function fetchFileSystem() {
+    try {
+      const response = await fetch('/api/sandbox/files', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sandboxId: result?.sbxId,
+          path: '/home/project'
+        }),
+      })
+      const data = await response.json()
+      setFileSystem(data.files)
+    } catch (error) {
+      console.error('Failed to fetch file system:', error)
+    }
   }
 
-  const isLinkAvailable = result?.template !== 'code-interpreter-v1'
+  async function handleFileSelect(path: string) {
+    try {
+      const response = await fetch('/api/sandbox/files/read', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sandboxId: result?.sbxId,
+          path
+        }),
+      })
+      const data = await response.json()
+      setSelectedFile(path)
+      setFileContent(data.content)
+    } catch (error) {
+      console.error('Failed to read file:', error)
+    }
+  }
 
   async function handleTerminalSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -64,11 +114,49 @@ export function Preview({
       const data = await response.json()
       setTerminalOutput(prev => [...prev, `$ ${terminalInput}`, ...data.output])
       setTerminalInput('')
+      
+      // Refresh file system after command execution
+      if (terminalInput.startsWith('mkdir') || terminalInput.startsWith('touch') || terminalInput.includes('npm')) {
+        fetchFileSystem()
+      }
     } catch (error) {
       console.error('Failed to execute command:', error)
       setTerminalOutput(prev => [...prev, `Error: Failed to execute command`])
     }
   }
+
+  function renderFileSystem(entries: FileSystemEntry[], level = 0) {
+    return (
+      <div style={{ paddingLeft: level * 16 }}>
+        {entries.map((entry) => (
+          <div key={entry.name} className="py-1">
+            <div 
+              className={`flex items-center gap-2 px-2 py-1 rounded hover:bg-accent cursor-pointer ${
+                selectedFile === entry.name ? 'bg-accent' : ''
+              }`}
+              onClick={() => entry.type === 'file' && handleFileSelect(entry.name)}
+            >
+              {entry.type === 'directory' ? (
+                <FolderTree className="h-4 w-4 text-yellow-500" />
+              ) : (
+                <File className="h-4 w-4 text-blue-500" />
+              )}
+              <span className="text-sm">{entry.name.split('/').pop()}</span>
+            </div>
+            {entry.type === 'directory' && entry.children && (
+              renderFileSystem(entry.children, level + 1)
+            )}
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  if (!fragment) {
+    return null
+  }
+
+  const isLinkAvailable = result?.template !== 'code-interpreter-v1'
 
   return (
     <div className="absolute md:relative z-10 top-0 left-0 shadow-2xl md:rounded-tl-3xl md:rounded-bl-3xl md:border-l md:border-y bg-black/40 backdrop-blur-md h-full w-full overflow-auto transition-all duration-300 ease-in-out">
@@ -169,20 +257,21 @@ export function Preview({
               {result && <FragmentPreview result={result as ExecutionResult} />}
             </TabsContent>
             <TabsContent value="files" className="h-full p-4">
-              <div className="font-mono text-sm bg-black/40 p-4 rounded-lg h-full overflow-auto">
-                {/* File system implementation */}
-                <pre className="text-muted-foreground whitespace-pre-wrap">
-                  {`/home/project/
-├── app/
-│   ├── page.tsx
-│   └── layout.tsx
-├── components/
-│   └── ...
-├── lib/
-│   └── ...
-└── public/
-    └── ...`}
-                </pre>
+              <div className="grid grid-cols-5 h-full gap-4">
+                <div className="col-span-2 bg-black/40 rounded-lg p-4 overflow-auto">
+                  {renderFileSystem(fileSystem)}
+                </div>
+                <div className="col-span-3 bg-black/40 rounded-lg p-4 overflow-auto">
+                  {selectedFile ? (
+                    <pre className="text-sm font-mono whitespace-pre-wrap">
+                      {fileContent}
+                    </pre>
+                  ) : (
+                    <div className="text-muted-foreground text-sm">
+                      Select a file to view its contents
+                    </div>
+                  )}
+                </div>
               </div>
             </TabsContent>
             <TabsContent value="terminal" className="h-full p-4">
