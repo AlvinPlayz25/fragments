@@ -473,7 +473,7 @@
   resolved "https://registry.yarnpkg.com/@connectrpc/connect/-/connect-2.0.0-rc.3.tgz#f75cd1bd132dd983ff4f16432aaf5309ee673662"
   integrity sha512-ARBt64yEyKbanyRETTjcjJuHr2YXorzQo0etyS5+P6oSeW8xEuzajA9g+zDnMcj1hlX2dQE93foIWQGfpru7gQ==
 
-"@e2b/code-interpreter@^2.0.0":
+"@e2b/code-interpreter@^1.5.0":
   version "1.5.0"
   resolved "https://registry.yarnpkg.com/@e2b/code-interpreter/-/code-interpreter-1.5.0.tgz#d89e5344fcb2343293cba1da03249c93bb380a0a"
   integrity sha512-9uO8Q5Hfhi6f2rSt0lcshLyhNF6pfh+36StE1dO8RrcMwi3F7MNSyWhKm0/KV9AJjviLZ8lSFFlwXi5/iKyLEA==
