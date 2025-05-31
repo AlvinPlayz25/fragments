@@ -4,7 +4,7 @@ export async function POST(req: Request) {
   const { sandboxId, path } = await req.json()
 
   try {
-    const sandbox = await Sandbox.reconnect(sandboxId)
+    const sandbox = await Sandbox.connect(sandboxId)
     const content = await sandbox.filesystem.read(path)
     
     return new Response(JSON.stringify({
@@ -17,7 +17,8 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error('File read error:', error)
     return new Response(JSON.stringify({
-      error: `Error reading file: ${error.message}`
+      error: `Error reading file: ${error.message}`,
+      content: '' // Provide empty string as fallback
     }), {
       status: 500,
       headers: {

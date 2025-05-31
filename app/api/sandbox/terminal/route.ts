@@ -4,7 +4,7 @@ export async function POST(req: Request) {
   const { command, sandboxId } = await req.json()
 
   try {
-    const sandbox = await Sandbox.reconnect(sandboxId)
+    const sandbox = await Sandbox.connect(sandboxId)
     const { stdout, stderr } = await sandbox.commands.run(command)
     
     return new Response(JSON.stringify({

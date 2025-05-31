@@ -57,6 +57,8 @@ export function Preview({
   }, [result?.sbxId])
 
   async function fetchFileSystem() {
+    if (!result?.sbxId) return
+
     try {
       const response = await fetch('/api/sandbox/files', {
         method: 'POST',
@@ -64,18 +66,21 @@ export function Preview({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          sandboxId: result?.sbxId,
+          sandboxId: result.sbxId,
           path: '/home/project'
         }),
       })
       const data = await response.json()
-      setFileSystem(data.files)
+      setFileSystem(data.files || []) // Ensure we always set an array
     } catch (error) {
       console.error('Failed to fetch file system:', error)
+      setFileSystem([]) // Set empty array on error
     }
   }
 
   async function handleFileSelect(path: string) {
+    if (!result?.sbxId) return
+
     try {
       const response = await fetch('/api/sandbox/files/read', {
         method: 'POST',
@@ -83,15 +88,16 @@ export function Preview({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          sandboxId: result?.sbxId,
+          sandboxId: result.sbxId,
           path
         }),
       })
       const data = await response.json()
       setSelectedFile(path)
-      setFileContent(data.content)
+      setFileContent(data.content || '') // Ensure we always set a string
     } catch (error) {
       console.error('Failed to read file:', error)
+      setFileContent('') // Set empty string on error
     }
   }
 
@@ -112,7 +118,7 @@ export function Preview({
       })
 
       const data = await response.json()
-      setTerminalOutput(prev => [...prev, `$ ${terminalInput}`, ...data.output])
+      setTerminalOutput(prev => [...prev, `$ ${terminalInput}`, ...(data.output || [])])
       setTerminalInput('')
       
       // Refresh file system after command execution
@@ -126,6 +132,8 @@ export function Preview({
   }
 
   function renderFileSystem(entries: FileSystemEntry[], level = 0) {
+    if (!Array.isArray(entries)) return null
+
     return (
       <div style={{ paddingLeft: level * 16 }}>
         {entries.map((entry) => (

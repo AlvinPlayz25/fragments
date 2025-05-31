@@ -4,7 +4,7 @@ export async function POST(req: Request) {
   const { sandboxId, path } = await req.json()
 
   try {
-    const sandbox = await Sandbox.reconnect(sandboxId)
+    const sandbox = await Sandbox.connect(sandboxId)
     const files = await sandbox.filesystem.list(path)
     
     return new Response(JSON.stringify({
@@ -17,7 +17,8 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error('File system error:', error)
     return new Response(JSON.stringify({
-      error: `Error accessing file system: ${error.message}`
+      error: `Error accessing file system: ${error.message}`,
+      files: [] // Provide empty array as fallback
     }), {
       status: 500,
       headers: {
