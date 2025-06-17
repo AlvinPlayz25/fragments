@@ -1,21 +1,34 @@
-import { DeployDialog } from './deploy-dialog'
-import { FragmentCode } from './fragment-code'
-import { FragmentPreview } from './fragment-preview'
-import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useState, useEffect, useRef, KeyboardEvent, Dispatch, SetStateAction } from 'react';
+import { DeployDialog } from './deploy-dialog';
+import { FragmentCode } from './fragment-code';
+import { FragmentPreview } from './fragment-preview';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '@/components/ui/tooltip'
-import { FragmentSchema } from '@/lib/schema'
-import { ExecutionResult } from '@/lib/types'
-import { DeepPartial } from 'ai'
-import { ChevronsRight, File, LoaderCircle, Terminal, FolderTree } from 'lucide-react'
-import { Dispatch, SetStateAction, useState, useEffect } from 'react'
+} from '@/components/ui/tooltip';
+import { FragmentSchema } from '@/lib/schema';
+import { ExecutionResult } from '@/lib/types';
+import { DeepPartial } from 'ai';
+import { 
+  ChevronsRight, 
+  File, 
+  LoaderCircle, 
+  Terminal, 
+  FolderTree,
+  Plus,
+  Trash,
+  Save,
+  FolderPlus,
+  ArrowUp,
+  RotateCw
+} from 'lucide-react';
 
 interface FileSystemEntry {
+  path: string;
   name: string;
   type: 'file' | 'directory';
   content?: string;
@@ -33,31 +46,45 @@ export function Preview({
   result,
   onClose,
 }: {
-  teamID: string | undefined
-  accessToken: string | undefined
-  selectedTab: 'code' | 'fragment' | 'files' | 'terminal'
-  onSelectedTabChange: Dispatch<SetStateAction<'code' | 'fragment' | 'files' | 'terminal'>>
-  isChatLoading: boolean
-  isPreviewLoading: boolean
-  fragment?: DeepPartial<FragmentSchema>
-  result?: ExecutionResult
-  onClose: () => void
+  teamID: string | undefined;
+  accessToken: string | undefined;
+  selectedTab: 'code' | 'fragment' | 'files' | 'terminal';
+  onSelectedTabChange: Dispatch<SetStateAction<'code' | 'fragment' | 'files' | 'terminal'>>;
+  isChatLoading: boolean;
+  isPreviewLoading: boolean;
+  fragment?: DeepPartial<FragmentSchema>;
+  result?: ExecutionResult;
+  onClose: () => void;
 }) {
-  const [terminalOutput, setTerminalOutput] = useState<string[]>([])
-  const [terminalInput, setTerminalInput] = useState('')
-  const [fileSystem, setFileSystem] = useState<FileSystemEntry[]>([])
-  const [selectedFile, setSelectedFile] = useState<string | null>(null)
-  const [fileContent, setFileContent] = useState<string>('')
+  const [terminalOutput, setTerminalOutput] = useState<string[]>([]);
+  const [terminalInput, setTerminalInput] = useState('');
+  const [commandHistory, setCommandHistory] = useState<string[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const [fileSystem, setFileSystem] = useState<FileSystemEntry[]>([]);
+  const [currentPath, setCurrentPath] = useState<string>('/home/project');
+  const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [fileContent, setFileContent] = useState<string>('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [newFileName, setNewFileName] = useState('');
+  const [newFolderName, setNewFolderName] = useState('');
+  const [showCreateFile, setShowCreateFile] = useState(false);
+  const [showCreateFolder, setShowCreateFolder] = useState(false);
+  const terminalInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Initialize file system structure when sandbox is ready
     if (result?.sbxId) {
-      fetchFileSystem()
+      fetchFileSystem();
     }
-  }, [result?.sbxId])
+  }, [result?.sbxId, currentPath]);
+  
+  useEffect(() => {
+    if (terminalInputRef.current) {
+      terminalInputRef.current.focus();
+    }
+  }, [selectedTab]);
 
   async function fetchFileSystem() {
-    if (!result?.sbxId) return
+    if (!result?.sbxId) return;
 
     try {
       const response = await fetch('/api/sandbox/files', {
@@ -67,19 +94,26 @@ export function Preview({
         },
         body: JSON.stringify({
           sandboxId: result.sbxId,
-          path: '/home/project'
+          path: currentPath
         }),
-      })
-      const data = await response.json()
-      setFileSystem(data.files || []) // Ensure we always set an array
+      });
+      const data = await response.json();
+      setFileSystem(data.files || []);
     } catch (error) {
-      console.error('Failed to fetch file system:', error)
-      setFileSystem([]) // Set empty array on error
+      console.error('Failed to fetch file system:', error);
+      setFileSystem([]);
     }
   }
 
-  async function handleFileSelect(path: string) {
-    if (!result?.sbxId) return
+  async function handleFileSelect(entry: FileSystemEntry) {
+    if (!result?.sbxId) return;
+
+    if (entry.type === 'directory') {
+      setCurrentPath(entry.path);
+      setSelectedFile(null);
+      setFileContent('');
+      return;
+    }
 
     try {
       const response = await fetch('/api/sandbox/files/read', {
@@ -89,21 +123,126 @@ export function Preview({
         },
         body: JSON.stringify({
           sandboxId: result.sbxId,
-          path
+          path: entry.path
         }),
-      })
-      const data = await response.json()
-      setSelectedFile(path)
-      setFileContent(data.content || '') // Ensure we always set a string
+      });
+      const data = await response.json();
+      setSelectedFile(entry.path);
+      setFileContent(data.content || '');
+      setIsEditing(false);
     } catch (error) {
-      console.error('Failed to read file:', error)
-      setFileContent('') // Set empty string on error
+      console.error('Failed to read file:', error);
+      setFileContent('');
     }
   }
 
+  async function saveFile() {
+    if (!result?.sbxId || !selectedFile) return;
+
+    try {
+      await fetch('/api/sandbox/files/write', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sandboxId: result.sbxId,
+          path: selectedFile,
+          content: fileContent
+        }),
+      });
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Failed to save file:', error);
+    }
+  }
+
+  async function createFile() {
+    if (!result?.sbxId || !newFileName) return;
+
+    const filePath = `${currentPath}/${newFileName}`;
+
+    try {
+      await fetch('/api/sandbox/files/write', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sandboxId: result.sbxId,
+          path: filePath,
+          content: ''
+        }),
+      });
+      setNewFileName('');
+      setShowCreateFile(false);
+      fetchFileSystem();
+    } catch (error) {
+      console.error('Failed to create file:', error);
+    }
+  }
+
+  async function createFolder() {
+    if (!result?.sbxId || !newFolderName) return;
+
+    const folderPath = `${currentPath}/${newFolderName}`;
+
+    try {
+      await fetch('/api/sandbox/files/mkdir', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sandboxId: result.sbxId,
+          path: folderPath
+        }),
+      });
+      setNewFolderName('');
+      setShowCreateFolder(false);
+      fetchFileSystem();
+    } catch (error) {
+      console.error('Failed to create folder:', error);
+    }
+  }
+
+  async function deleteEntry(entry: FileSystemEntry) {
+    if (!result?.sbxId) return;
+
+    try {
+      await fetch('/api/sandbox/files/delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sandboxId: result.sbxId,
+          path: entry.path
+        }),
+      });
+      fetchFileSystem();
+      if (selectedFile === entry.path) {
+        setSelectedFile(null);
+        setFileContent('');
+      }
+    } catch (error) {
+      console.error('Failed to delete:', error);
+    }
+  }
+
+  function goUp() {
+    const newPath = currentPath.split('/').slice(0, -1).join('/') || '/';
+    setCurrentPath(newPath);
+  }
+
   async function handleTerminalSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    if (!result?.sbxId) return
+    e.preventDefault();
+    if (!result?.sbxId || !terminalInput.trim()) return;
+
+    // Add to history
+    const newHistory = [...commandHistory, terminalInput];
+    setCommandHistory(newHistory);
+    setHistoryIndex(newHistory.length);
 
     try {
       const response = await fetch('/api/sandbox/terminal', {
@@ -115,56 +254,98 @@ export function Preview({
           command: terminalInput,
           sandboxId: result.sbxId,
         }),
-      })
+      });
 
-      const data = await response.json()
-      setTerminalOutput(prev => [...prev, `$ ${terminalInput}`, ...(data.output || [])])
-      setTerminalInput('')
-      
+      const data = await response.json();
+      // Combine output into single string and split by newlines
+      const combinedOutput = (data.output || []).join('');
+      const outputLines = combinedOutput.split('\n');
+      setTerminalOutput(prev => [...prev, `$ ${terminalInput}`, ...outputLines]);
+      setTerminalInput('');
+
       // Refresh file system after command execution
-      if (terminalInput.startsWith('mkdir') || terminalInput.startsWith('touch') || terminalInput.includes('npm')) {
-        fetchFileSystem()
-      }
+      fetchFileSystem();
     } catch (error) {
-      console.error('Failed to execute command:', error)
-      setTerminalOutput(prev => [...prev, `Error: Failed to execute command`])
+      console.error('Failed to execute command:', error);
+      setTerminalOutput(prev => [...prev, `Error: Failed to execute command`]);
     }
   }
 
+  function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (commandHistory.length === 0) return;
+
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const newIndex = historyIndex > 0 ? historyIndex - 1 : 0;
+      setHistoryIndex(newIndex);
+      setTerminalInput(commandHistory[newIndex]);
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      const newIndex = historyIndex < commandHistory.length - 1 ? historyIndex + 1 : commandHistory.length - 1;
+      setHistoryIndex(newIndex);
+      setTerminalInput(commandHistory[newIndex] || '');
+    }
+  }
+
+  function clearTerminal() {
+    setTerminalOutput([]);
+  }
+
   function renderFileSystem(entries: FileSystemEntry[], level = 0) {
-    if (!Array.isArray(entries)) return null
+    if (!Array.isArray(entries)) return null;
 
     return (
-      <div style={{ paddingLeft: level * 16 }}>
+      <div className="space-y-1">
+        {level === 0 && currentPath !== '/' && (
+          <div 
+            className="flex items-center gap-2 px-2 py-1 rounded hover:bg-accent cursor-pointer"
+            onClick={goUp}
+          >
+            <ArrowUp className="h-4 w-4 text-blue-500" />
+            <span className="text-sm">..</span>
+          </div>
+        )}
+        
         {entries.map((entry) => (
-          <div key={entry.name} className="py-1">
-            <div 
-              className={`flex items-center gap-2 px-2 py-1 rounded hover:bg-accent cursor-pointer ${
-                selectedFile === entry.name ? 'bg-accent' : ''
-              }`}
-              onClick={() => entry.type === 'file' && handleFileSelect(entry.name)}
-            >
-              {entry.type === 'directory' ? (
-                <FolderTree className="h-4 w-4 text-yellow-500" />
-              ) : (
-                <File className="h-4 w-4 text-blue-500" />
-              )}
-              <span className="text-sm">{entry.name.split('/').pop()}</span>
+          <div key={entry.path} className="py-0.5">
+            <div className="group flex items-center gap-2 px-2 py-1 rounded hover:bg-accent cursor-pointer">
+              <div 
+                className="flex-1 flex items-center gap-2"
+                onClick={() => handleFileSelect(entry)}
+              >
+                {entry.type === 'directory' ? (
+                  <FolderTree className="h-4 w-4 text-yellow-500" />
+                ) : (
+                  <File className="h-4 w-4 text-blue-500" />
+                )}
+                <span className="text-sm">{entry.name}</span>
+              </div>
+              <button 
+                className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-400"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteEntry(entry);
+                }}
+              >
+                <Trash className="h-3 w-3" />
+              </button>
             </div>
             {entry.type === 'directory' && entry.children && (
-              renderFileSystem(entry.children, level + 1)
+              <div className="pl-4">
+                {renderFileSystem(entry.children, level + 1)}
+              </div>
             )}
           </div>
         ))}
       </div>
-    )
+    );
   }
 
   if (!fragment) {
-    return null
+    return null;
   }
 
-  const isLinkAvailable = result?.template !== 'code-interpreter-v1'
+  const isLinkAvailable = result?.template !== 'code-interpreter-v1';
 
   return (
     <div className="absolute md:relative z-10 top-0 left-0 shadow-2xl md:rounded-tl-3xl md:rounded-bl-3xl md:border-l md:border-y bg-black/40 backdrop-blur-md h-full w-full overflow-auto transition-all duration-300 ease-in-out">
@@ -266,16 +447,127 @@ export function Preview({
             </TabsContent>
             <TabsContent value="files" className="h-full p-4">
               <div className="grid grid-cols-5 h-full gap-4">
-                <div className="col-span-2 bg-black/40 rounded-lg p-4 overflow-auto">
-                  {renderFileSystem(fileSystem)}
+                <div className="col-span-2 bg-black/40 rounded-lg p-4 flex flex-col">
+                  <div className="flex justify-between items-center mb-2">
+                    <div className="text-sm text-muted-foreground truncate">
+                      {currentPath}
+                    </div>
+                    <div className="flex gap-1">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-6 w-6"
+                              onClick={() => setShowCreateFile(true)}
+                            >
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Create File</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-6 w-6"
+                              onClick={() => setShowCreateFolder(true)}
+                            >
+                              <FolderPlus className="h-3 w-3" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Create Folder</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  </div>
+                  <div className="flex-1 overflow-auto">
+                    {renderFileSystem(fileSystem)}
+                  </div>
+                  
+                  {showCreateFile && (
+                    <div className="mt-2 flex gap-2">
+                      <input
+                        type="text"
+                        value={newFileName}
+                        onChange={(e) => setNewFileName(e.target.value)}
+                        placeholder="Filename"
+                        className="flex-1 bg-transparent border border-white/10 rounded px-2 py-1 text-sm"
+                        autoFocus
+                      />
+                      <Button 
+                        size="sm" 
+                        onClick={createFile}
+                        disabled={!newFileName}
+                      >
+                        Create
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setShowCreateFile(false)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  )}
+                  
+                  {showCreateFolder && (
+                    <div className="mt-2 flex gap-2">
+                      <input
+                        type="text"
+                        value={newFolderName}
+                        onChange={(e) => setNewFolderName(e.target.value)}
+                        placeholder="Folder name"
+                        className="flex-1 bg-transparent border border-white/10 rounded px-2 py-1 text-sm"
+                        autoFocus
+                      />
+                      <Button 
+                        size="sm" 
+                        onClick={createFolder}
+                        disabled={!newFolderName}
+                      >
+                        Create
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setShowCreateFolder(false)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  )}
                 </div>
-                <div className="col-span-3 bg-black/40 rounded-lg p-4 overflow-auto">
+                <div className="col-span-3 bg-black/40 rounded-lg p-4 flex flex-col">
                   {selectedFile ? (
-                    <pre className="text-sm font-mono whitespace-pre-wrap">
-                      {fileContent}
-                    </pre>
+                    <>
+                      <div className="flex justify-between items-center mb-2">
+                        <div className="text-sm text-muted-foreground truncate">
+                          {selectedFile}
+                        </div>
+                        <Button 
+                          size="sm" 
+                          onClick={saveFile}
+                          disabled={!isEditing}
+                        >
+                          <Save className="h-4 w-4 mr-1" /> Save
+                        </Button>
+                      </div>
+                      <textarea
+                        value={fileContent}
+                        onChange={(e) => {
+                          setFileContent(e.target.value);
+                          setIsEditing(true);
+                        }}
+                        className="flex-1 bg-transparent font-mono text-sm p-2 rounded border border-white/10 focus:outline-none focus:ring-1 focus:ring-white/20"
+                        spellCheck="false"
+                      />
+                    </>
                   ) : (
-                    <div className="text-muted-foreground text-sm">
+                    <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
                       Select a file to view its contents
                     </div>
                   )}
@@ -284,7 +576,19 @@ export function Preview({
             </TabsContent>
             <TabsContent value="terminal" className="h-full p-4">
               <div className="font-mono text-sm bg-black/40 p-4 rounded-lg h-full flex flex-col">
-                <div className="flex-1 overflow-auto mb-4">
+                <div className="flex justify-between items-center mb-2">
+                  <div className="text-sm text-muted-foreground">
+                    Terminal
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={clearTerminal}
+                  >
+                    <RotateCw className="h-4 w-4 mr-1" /> Clear
+                  </Button>
+                </div>
+                <div className="flex-1 overflow-auto mb-4 bg-black/30 rounded p-2">
                   {terminalOutput.map((line, i) => (
                     <div key={i} className="text-muted-foreground">
                       {line}
@@ -293,9 +597,11 @@ export function Preview({
                 </div>
                 <form onSubmit={handleTerminalSubmit} className="flex gap-2">
                   <input
+                    ref={terminalInputRef}
                     type="text"
                     value={terminalInput}
                     onChange={(e) => setTerminalInput(e.target.value)}
+                    onKeyDown={handleKeyDown}
                     placeholder="Enter command..."
                     className="flex-1 bg-transparent border border-white/10 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-white/20"
                   />
@@ -309,5 +615,5 @@ export function Preview({
         )}
       </Tabs>
     </div>
-  )
+  );
 }
