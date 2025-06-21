@@ -22,11 +22,26 @@ export function FragmentWeb({ result }: { result: ExecutionResultWeb }) {
     <div className="flex flex-col w-full h-full">
       <iframe
         key={iframeKey}
-        className="h-full w-full"
+        className={`w-full ${result.terminalOutput && result.terminalOutput.length > 0 ? 'flex-1' : 'h-full'}`}
         sandbox="allow-forms allow-scripts allow-same-origin"
         loading="lazy"
         src={result.url}
       />
+
+      {/* Terminal Output Section */}
+      {result.terminalOutput && result.terminalOutput.length > 0 && (
+        <div className="border-t bg-black text-green-400 p-3 max-h-32 overflow-y-auto">
+          <div className="text-xs font-mono">
+            <div className="text-gray-400 mb-1">Terminal Output:</div>
+            {result.terminalOutput.map((line, index) => (
+              <div key={index} className={line.startsWith('$') ? 'text-yellow-400 font-bold' : ''}>
+                {line}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="p-2 border-t">
         <div className="flex items-center bg-muted dark:bg-white/10 rounded-2xl">
           <TooltipProvider>

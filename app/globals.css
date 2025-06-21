@@ -51,9 +51,38 @@
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-border font-mono;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-mono;
+  }
+
+  /* Ensure all text elements use monospace font */
+  h1, h2, h3, h4, h5, h6, p, span, div, button, input, textarea, label, a {
+    @apply font-mono;
+  }
+
+  /* Smooth transitions for layout changes */
+  .welcome-transition {
+    transition: all 0.5s ease-in-out;
+  }
+
+  /* Custom push animations for arrows */
+  @keyframes push-right {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(4px); }
+  }
+
+  @keyframes push-left {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(-4px); }
+  }
+
+  .animate-push-right {
+    animation: push-right 0.6s ease-in-out infinite;
+  }
+
+  .animate-push-left {
+    animation: push-left 0.6s ease-in-out infinite;
   }
 }

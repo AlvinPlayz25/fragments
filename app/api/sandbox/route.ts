@@ -1,5 +1,5 @@
 import { FragmentSchema } from '@/lib/schema'
-import { ExecutionResultInterpreter, ExecutionResultWeb } from '@/lib/types'
+import { ExecutionResultWeb } from '@/lib/types'
 import { Sandbox } from '@e2b/code-interpreter'
 
 const sandboxTimeout = 10 * 60 * 1000 // 10 minute in ms
@@ -48,38 +48,66 @@ export async function POST(req: Request) {
     )
   }
 
-  // Copy code to fs
-  if (fragment.code && Array.isArray(fragment.code)) {
-    fragment.code.forEach(async (file) => {
+  // Copy files to fs
+  if (fragment.files && fragment.files.length > 0) {
+    // New multi-file approach
+    for (const file of fragment.files) {
       await sbx.files.write(file.file_path, file.file_content)
       console.log(`Copied file to ${file.file_path} in ${sbx.sandboxId}`)
-    })
-  } else {
+    }
+  } else if (fragment.file_path && fragment.code) {
+    // Legacy single file approach (backward compatibility)
     await sbx.files.write(fragment.file_path, fragment.code)
     console.log(`Copied file to ${fragment.file_path} in ${sbx.sandboxId}`)
   }
 
-  // Execute code or return a URL to the running sandbox
-  if (fragment.template === 'code-interpreter-v1') {
-    const { logs, error, results } = await sbx.runCode(fragment.code || '')
+  // Execute terminal commands if specified
+  let terminalOutput: string[] = []
+  if (fragment.has_terminal_commands && fragment.terminal_commands && fragment.terminal_commands.length > 0) {
+    console.log(`Executing ${fragment.terminal_commands.length} terminal commands in sandbox ${sbx.sandboxId}`)
 
-    return new Response(
-      JSON.stringify({
-        sbxId: sbx?.sandboxId,
-        template: fragment.template,
-        stdout: logs.stdout,
-        stderr: logs.stderr,
-        runtimeError: error,
-        cellResults: results,
-      } as ExecutionResultInterpreter),
-    )
+    for (const command of fragment.terminal_commands) {
+      try {
+        console.log(`Running command: ${command}`)
+        const result = await sbx.commands.run(command)
+
+        // Combine stdout and stderr for logging
+        terminalOutput.push(`$ ${command}`)
+
+        // Add stdout (split by lines if it's a string)
+        if (result.stdout) {
+          if (typeof result.stdout === 'string') {
+            terminalOutput.push(...result.stdout.split('\n').filter(line => line.trim() !== ''))
+          } else if (Array.isArray(result.stdout)) {
+            terminalOutput.push(...(result.stdout as string[]).filter(line => line.trim() !== ''))
+          }
+        }
+
+        // Add stderr (split by lines if it's a string)
+        if (result.stderr) {
+          if (typeof result.stderr === 'string') {
+            terminalOutput.push(...result.stderr.split('\n').filter(line => line.trim() !== ''))
+          } else if (Array.isArray(result.stderr)) {
+            terminalOutput.push(...(result.stderr as string[]).filter(line => line.trim() !== ''))
+          }
+        }
+
+        console.log(`Command "${command}" completed with exit code: ${result.exitCode}`)
+      } catch (error) {
+        console.error(`Error executing command "${command}":`, error)
+        terminalOutput.push(`$ ${command}`)
+        terminalOutput.push(`Error: ${error instanceof Error ? error.message : String(error)}`)
+      }
+    }
   }
 
+  // Return URL to the running sandbox
   return new Response(
     JSON.stringify({
       sbxId: sbx?.sandboxId,
       template: fragment.template,
       url: `https://${sbx?.getHost(fragment.port || 80)}`,
+      terminalOutput: terminalOutput.length > 0 ? terminalOutput : undefined,
     } as ExecutionResultWeb),
   )
 }

@@ -40,42 +40,46 @@ export function NavBar({
   canUndo: boolean
 }) {
   return (
-    <nav className="w-full flex bg-black/20 backdrop-blur-sm py-4 border-b border-white/10">
+    <nav className="w-full flex bg-card border-b border-border py-3 px-4">
       <div className="flex flex-1 items-center">
         <Link href="/" className="flex items-center gap-2" target="_blank">
-          <Logo width={24} height={24} />
-          <h1 className="font-bold text-white">FRMWRK</h1>
+          <Logo width={20} height={20} />
+          <h1 className="font-bold text-card-foreground text-lg">Codex</h1>
         </Link>
       </div>
-      <div className="flex items-center gap-1 md:gap-4">
+      <div className="flex items-center gap-2">
         <TooltipProvider>
           <Tooltip delayDuration={0}>
             <TooltipTrigger asChild>
               <Button
-                variant="ghost"
-                size="icon"
+                variant="outline"
+                size="sm"
                 onClick={onUndo}
                 disabled={!canUndo}
+                className="h-8 px-2"
               >
-                <Undo className="h-4 w-4 md:h-5 md:w-5" />
+                <Undo className="h-3 w-3 mr-1" />
+                <span className="hidden md:inline text-xs">Undo</span>
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Undo</TooltipContent>
+            <TooltipContent>Undo last action</TooltipContent>
           </Tooltip>
         </TooltipProvider>
         <TooltipProvider>
           <Tooltip delayDuration={0}>
             <TooltipTrigger asChild>
               <Button
-                variant="ghost"
-                size="icon"
+                variant="outline"
+                size="sm"
                 onClick={onClear}
                 disabled={!canClear}
+                className="h-8 px-2"
               >
-                <Trash className="h-4 w-4 md:h-5 md:w-5" />
+                <Trash className="h-3 w-3 mr-1" />
+                <span className="hidden md:inline text-xs">Clear</span>
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Clear chat</TooltipContent>
+            <TooltipContent>Clear chat history</TooltipContent>
           </Tooltip>
         </TooltipProvider>
         <TooltipProvider>
@@ -121,9 +125,9 @@ export function NavBar({
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
-          <Button variant="default" onClick={showLogin}>
-            Sign in
-            <ArrowRight className="ml-2 h-4 w-4" />
+          <Button variant="default" onClick={showLogin} size="sm" className="h-8">
+            <span className="text-xs">Sign in</span>
+            <ArrowRight className="ml-1 h-3 w-3" />
           </Button>
         )}
       </div>

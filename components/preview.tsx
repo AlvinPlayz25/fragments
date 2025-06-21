@@ -13,11 +13,11 @@ import {
 import { FragmentSchema } from '@/lib/schema';
 import { ExecutionResult } from '@/lib/types';
 import { DeepPartial } from 'ai';
-import { 
-  ChevronsRight, 
-  File, 
-  LoaderCircle, 
-  Terminal, 
+import {
+  ChevronsRight,
+  File,
+  LoaderCircle,
+  Terminal,
   FolderTree,
   Plus,
   Trash,
@@ -48,8 +48,8 @@ export function Preview({
 }: {
   teamID: string | undefined;
   accessToken: string | undefined;
-  selectedTab: 'code' | 'fragment' | 'files' | 'terminal';
-  onSelectedTabChange: Dispatch<SetStateAction<'code' | 'fragment' | 'files' | 'terminal'>>;
+  selectedTab: 'code' | 'fragment' | 'files';
+  onSelectedTabChange: Dispatch<SetStateAction<'code' | 'fragment' | 'files'>>;
   isChatLoading: boolean;
   isPreviewLoading: boolean;
   fragment?: DeepPartial<FragmentSchema>;
@@ -352,7 +352,7 @@ export function Preview({
       <Tabs
         value={selectedTab}
         onValueChange={(value) =>
-          onSelectedTabChange(value as 'code' | 'fragment' | 'files' | 'terminal')
+          onSelectedTabChange(value as 'code' | 'fragment' | 'files')
         }
         className="h-full flex flex-col items-start justify-start"
       >
@@ -406,32 +406,21 @@ export function Preview({
                 <File className="h-3 w-3" />
                 Files
               </TabsTrigger>
-              <TabsTrigger
-                className="font-normal text-xs py-1 px-2 gap-1 flex items-center transition-colors duration-200"
-                value="terminal"
-              >
-                <Terminal className="h-3 w-3" />
-                Terminal
-              </TabsTrigger>
             </TabsList>
           </div>
-          {result && (
-            <div className="flex items-center justify-end gap-2">
-              {isLinkAvailable && (
-                <DeployDialog
-                  url={result.url!}
-                  sbxId={result.sbxId!}
-                  teamID={teamID}
-                  accessToken={accessToken}
-                />
-              )}
-            </div>
-          )}
+
         </div>
         {fragment && (
           <div className="overflow-y-auto w-full h-full">
             <TabsContent value="code" className="h-full">
-              {fragment.code && fragment.file_path && (
+              {fragment.files && fragment.files.length > 0 ? (
+                <FragmentCode
+                  files={fragment.files.map(file => ({
+                    name: file.file_path,
+                    content: file.file_content,
+                  }))}
+                />
+              ) : fragment.code && fragment.file_path ? (
                 <FragmentCode
                   files={[
                     {
@@ -440,7 +429,7 @@ export function Preview({
                     },
                   ]}
                 />
-              )}
+              ) : null}
             </TabsContent>
             <TabsContent value="fragment" className="h-full">
               {result && <FragmentPreview result={result as ExecutionResult} />}
@@ -574,43 +563,7 @@ export function Preview({
                 </div>
               </div>
             </TabsContent>
-            <TabsContent value="terminal" className="h-full p-4">
-              <div className="font-mono text-sm bg-black/40 p-4 rounded-lg h-full flex flex-col">
-                <div className="flex justify-between items-center mb-2">
-                  <div className="text-sm text-muted-foreground">
-                    Terminal
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={clearTerminal}
-                  >
-                    <RotateCw className="h-4 w-4 mr-1" /> Clear
-                  </Button>
-                </div>
-                <div className="flex-1 overflow-auto mb-4 bg-black/30 rounded p-2">
-                  {terminalOutput.map((line, i) => (
-                    <div key={i} className="text-muted-foreground">
-                      {line}
-                    </div>
-                  ))}
-                </div>
-                <form onSubmit={handleTerminalSubmit} className="flex gap-2">
-                  <input
-                    ref={terminalInputRef}
-                    type="text"
-                    value={terminalInput}
-                    onChange={(e) => setTerminalInput(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Enter command..."
-                    className="flex-1 bg-transparent border border-white/10 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-white/20"
-                  />
-                  <Button type="submit" variant="outline" size="sm">
-                    Run
-                  </Button>
-                </form>
-              </div>
-            </TabsContent>
+
           </div>
         )}
       </Tabs>

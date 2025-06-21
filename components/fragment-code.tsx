@@ -15,7 +15,7 @@ export function FragmentCode({
 }: {
   files: { name: string; content: string }[]
 }) {
-  const [currentFile, setCurrentFile] = useState(files[0].name)
+  const [currentFile, setCurrentFile] = useState(files[0]?.name || '')
   const currentFileContent = files.find(
     (file) => file.name === currentFile,
   )?.content
@@ -31,6 +31,14 @@ export function FragmentCode({
     a.click()
     window.URL.revokeObjectURL(url)
     document.body.removeChild(a)
+  }
+
+  if (!files || files.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-full text-muted-foreground">
+        No code files to display
+      </div>
+    )
   }
 
   return (
@@ -84,7 +92,7 @@ export function FragmentCode({
       <div className="flex flex-col flex-1 overflow-x-auto">
         <CodeView
           code={currentFileContent || ''}
-          lang={currentFile.split('.').pop() || ''}
+          lang={currentFile ? currentFile.split('.').pop() || '' : ''}
         />
       </div>
     </div>

@@ -8,6 +8,7 @@ import { ChatPicker } from '@/components/chat-picker'
 import { ChatSettings } from '@/components/chat-settings'
 import { NavBar } from '@/components/navbar'
 import { Preview } from '@/components/preview'
+import Logo from '@/components/logo'
 import { useAuth } from '@/lib/auth'
 import { Message, toAISDKMessages, toMessageImage } from '@/lib/messages'
 import { LLMModelConfig } from '@/lib/models'
@@ -40,7 +41,7 @@ export default function Home() {
   const [result, setResult] = useState<ExecutionResult>()
   const [messages, setMessages] = useState<Message[]>([])
   const [fragment, setFragment] = useState<DeepPartial<FragmentSchema>>()
-  const [currentTab, setCurrentTab] = useState<'code' | 'fragment' | 'files' | 'terminal'>('code')
+  const [currentTab, setCurrentTab] = useState<'code' | 'fragment' | 'files'>('code')
   const [isPreviewLoading, setIsPreviewLoading] = useState(false)
   const [isAuthDialogOpen, setAuthDialog] = useState(false)
   const [authView, setAuthView] = useState<ViewType>('sign_in')
@@ -261,8 +262,11 @@ export default function Home() {
     setCurrentPreview({ fragment: undefined, result: undefined })
   }
 
+  // Check if we should show the centered welcome view
+  const showWelcomeView = messages.length === 0
+
   return (
-    <main className="flex min-h-screen max-h-screen">
+    <main className="flex min-h-screen max-h-screen welcome-transition">
       {supabase && (
         <AuthDialog
           open={isAuthDialogOpen}
@@ -271,67 +275,125 @@ export default function Home() {
           supabase={supabase}
         />
       )}
-      <div className="grid w-full md:grid-cols-2">
-        <div
-          className={`flex flex-col w-full max-h-full max-w-[800px] mx-auto px-4 overflow-auto ${fragment ? 'col-span-1' : 'col-span-2'}`}
-        >
-          <NavBar
-            session={session}
-            showLogin={() => setAuthDialog(true)}
-            signOut={logout}
-            onSocialClick={handleSocialClick}
-            onClear={handleClearChat}
-            canClear={messages.length > 0}
-            canUndo={messages.length > 1 && !isLoading}
-            onUndo={handleUndo}
-          />
-          <Chat
-            messages={messages}
-            isLoading={isLoading}
-            setCurrentPreview={setCurrentPreview}
-          />
-          <ChatInput
-            retry={retry}
-            isErrored={error !== undefined}
-            errorMessage={errorMessage}
-            isLoading={isLoading}
-            isRateLimited={isRateLimited}
-            stop={stop}
-            input={chatInput}
-            handleInputChange={handleSaveInputChange}
-            handleSubmit={handleSubmitAuth}
-            isMultiModal={currentModel?.multiModal || false}
-            files={files}
-            handleFileChange={handleFileChange}
-          >
-            <ChatPicker
-              templates={templates}
-              selectedTemplate={selectedTemplate}
-              onSelectedTemplateChange={setSelectedTemplate}
-              models={filteredModels}
-              languageModel={languageModel}
-              onLanguageModelChange={handleLanguageModelChange}
-            />
-            <ChatSettings
-              languageModel={languageModel}
-              onLanguageModelChange={handleLanguageModelChange}
-              apiKeyConfigurable={!process.env.NEXT_PUBLIC_NO_API_KEY_INPUT}
-              baseURLConfigurable={!process.env.NEXT_PUBLIC_NO_BASE_URL_INPUT}
-            />
-          </ChatInput>
+
+      {showWelcomeView ? (
+        // Centered welcome view
+        <div className="flex flex-col items-center justify-center w-full min-h-screen px-4 welcome-transition">
+          <div className="w-full max-w-2xl">
+            {/* Logo and Brand */}
+            <div className="text-center mb-8">
+              <div className="flex items-center justify-center gap-3 mb-6">
+                <Logo width={32} height={32} className="text-foreground" />
+                <h1 className="text-3xl font-bold text-foreground">Codex</h1>
+              </div>
+
+              {/* Quote */}
+              <h2 className="text-4xl font-bold mb-2 text-foreground">
+                "Prompt and Witness"
+              </h2>
+              <p className="text-muted-foreground text-lg">
+                Describe your vision, watch it come to life
+              </p>
+            </div>
+
+            {/* Centered Chat Input */}
+            <div className="w-full">
+              <ChatInput
+                retry={retry}
+                isErrored={error !== undefined}
+                errorMessage={errorMessage}
+                isLoading={isLoading}
+                isRateLimited={isRateLimited}
+                stop={stop}
+                input={chatInput}
+                handleInputChange={handleSaveInputChange}
+                handleSubmit={handleSubmitAuth}
+                isMultiModal={currentModel?.multiModal || false}
+                files={files}
+                handleFileChange={handleFileChange}
+              >
+                <ChatPicker
+                  templates={templates}
+                  selectedTemplate={selectedTemplate}
+                  onSelectedTemplateChange={setSelectedTemplate}
+                  models={filteredModels}
+                  languageModel={languageModel}
+                  onLanguageModelChange={handleLanguageModelChange}
+                />
+                <ChatSettings
+                  languageModel={languageModel}
+                  onLanguageModelChange={handleLanguageModelChange}
+                  apiKeyConfigurable={!process.env.NEXT_PUBLIC_NO_API_KEY_INPUT}
+                  baseURLConfigurable={!process.env.NEXT_PUBLIC_NO_BASE_URL_INPUT}
+                />
+              </ChatInput>
+            </div>
+          </div>
         </div>
-        <Preview
-          teamID={userTeam?.id}
-          accessToken={session?.access_token}
-          selectedTab={currentTab}
-          onSelectedTabChange={setCurrentTab}
-          isChatLoading={isLoading}
-          isPreviewLoading={isPreviewLoading}
-          fragment={fragment}
-          result={result as ExecutionResult}
-          onClose={() => setFragment(undefined)}
-        />
-      </div>
+      ) : (
+        // Normal layout after first message
+        <div className="grid w-full md:grid-cols-2">
+          <div
+            className={`flex flex-col w-full max-h-full max-w-[800px] mx-auto px-4 overflow-auto ${fragment ? 'col-span-1' : 'col-span-2'}`}
+          >
+            <NavBar
+              session={session}
+              showLogin={() => setAuthDialog(true)}
+              signOut={logout}
+              onSocialClick={handleSocialClick}
+              onClear={handleClearChat}
+              canClear={messages.length > 0}
+              canUndo={messages.length > 1 && !isLoading}
+              onUndo={handleUndo}
+            />
+            <Chat
+              messages={messages}
+              isLoading={isLoading}
+              setCurrentPreview={setCurrentPreview}
+            />
+            <ChatInput
+              retry={retry}
+              isErrored={error !== undefined}
+              errorMessage={errorMessage}
+              isLoading={isLoading}
+              isRateLimited={isRateLimited}
+              stop={stop}
+              input={chatInput}
+              handleInputChange={handleSaveInputChange}
+              handleSubmit={handleSubmitAuth}
+              isMultiModal={currentModel?.multiModal || false}
+              files={files}
+              handleFileChange={handleFileChange}
+            >
+              <ChatPicker
+                templates={templates}
+                selectedTemplate={selectedTemplate}
+                onSelectedTemplateChange={setSelectedTemplate}
+                models={filteredModels}
+                languageModel={languageModel}
+                onLanguageModelChange={handleLanguageModelChange}
+              />
+              <ChatSettings
+                languageModel={languageModel}
+                onLanguageModelChange={handleLanguageModelChange}
+                apiKeyConfigurable={!process.env.NEXT_PUBLIC_NO_API_KEY_INPUT}
+                baseURLConfigurable={!process.env.NEXT_PUBLIC_NO_BASE_URL_INPUT}
+              />
+            </ChatInput>
+          </div>
+          <Preview
+            teamID={userTeam?.id}
+            accessToken={session?.access_token}
+            selectedTab={currentTab}
+            onSelectedTabChange={setCurrentTab}
+            isChatLoading={isLoading}
+            isPreviewLoading={isPreviewLoading}
+            fragment={fragment}
+            result={result as ExecutionResult}
+            onClose={() => setFragment(undefined)}
+          />
+        </div>
+      )}
     </main>
   )
 }

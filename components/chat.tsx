@@ -31,7 +31,7 @@ export function Chat({
     >
       {messages.map((message: Message, index: number) => (
         <div
-          className={`flex flex-col px-4 shadow-sm whitespace-pre-wrap ${message.role !== 'user' ? 'bg-accent dark:bg-white/5 border text-accent-foreground dark:text-muted-foreground py-4 rounded-2xl gap-4 w-full' : 'bg-gradient-to-b from-black/5 to-black/10 dark:from-black/30 dark:to-black/50 py-2 rounded-xl gap-2 w-fit'} font-serif`}
+          className={`flex flex-col px-4 shadow-sm whitespace-pre-wrap ${message.role !== 'user' ? 'bg-card border border-border text-card-foreground py-4 rounded-2xl gap-4 w-full' : 'bg-muted border border-border py-3 rounded-xl gap-2 w-fit ml-auto text-muted-foreground'} font-mono`}
           key={index}
         >
           {message.content.map((content, id) => {
@@ -57,19 +57,31 @@ export function Chat({
                   result: message.result,
                 })
               }
-              className="py-2 pl-2 w-full md:w-max flex items-center border rounded-xl select-none hover:bg-white dark:hover:bg-white/5 hover:cursor-pointer"
+              className="group relative overflow-hidden bg-card border border-border rounded-xl p-4 select-none hover:shadow-lg hover:scale-[1.01] transition-all duration-300 cursor-pointer max-w-md"
             >
-              <div className="rounded-[0.5rem] w-10 h-10 bg-black/5 dark:bg-white/5 self-stretch flex items-center justify-center">
-                <Terminal strokeWidth={2} className="text-[#FF8800]" />
-              </div>
-              <div className="pl-2 pr-4 flex flex-col">
-                <span className="font-bold font-sans text-sm text-primary">
+              <div className="absolute inset-0 bg-muted/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+              <div className="relative flex flex-col items-center text-center">
+                <h3 className="font-bold text-sm text-card-foreground mb-2">
                   {message.object.title}
-                </span>
-                <span className="font-sans text-sm text-muted-foreground">
-                  Click to see fragment
-                </span>
+                </h3>
+
+                <div className="flex items-center gap-1 text-muted-foreground text-sm">
+                  <span className="animate-pulse group-hover:animate-push-right">---&gt;</span>
+                  <span className="font-medium group-hover:text-card-foreground transition-colors duration-200">
+                    Click to view code & preview
+                  </span>
+                  <span className="animate-pulse group-hover:animate-push-left">&lt;---</span>
+                </div>
+
+                <div className="mt-2 flex gap-1">
+                  <div className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-pulse group-hover:bg-card-foreground transition-colors duration-300"></div>
+                  <div className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-pulse group-hover:bg-card-foreground transition-colors duration-300 delay-100"></div>
+                  <div className="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-pulse group-hover:bg-card-foreground transition-colors duration-300 delay-200"></div>
+                </div>
               </div>
+
+              <div className="absolute top-2 right-2 w-2 h-2 bg-card-foreground rounded-full animate-ping group-hover:animate-pulse" />
             </div>
           )}
         </div>
